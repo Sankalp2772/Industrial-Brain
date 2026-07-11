@@ -6,20 +6,81 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
+import { ApiService } from "../services/api"
+
 export function UploadCenterPage() {
+  const [activeFile, setActiveFile] = React.useState<File | null>(null)
+  const [uploadStatus, setUploadStatus] = React.useState<'idle'|'uploading'|'processing'|'done'|'error'>('idle')
+  const [progress, setProgress] = React.useState(0)
+  const [pipelineStep, setPipelineStep] = React.useState<string>('none')
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0]
+      setActiveFile(file)
+      await startUploadProcess(file)
+    }
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0]
+      setActiveFile(file)
+      await startUploadProcess(file)
+    }
+  }
+
+  const startUploadProcess = async (file: File) => {
+    try {
+      setUploadStatus('uploading')
+      setProgress(25)
+      const docId = await ApiService.uploadDocument(file)
+      
+      setUploadStatus('processing')
+      setProgress(50)
+      
+      await ApiService.processDocumentPipeline(docId, (step) => {
+        setPipelineStep(step)
+        if (step === 'extract') setProgress(60)
+        if (step === 'knowledge') setProgress(75)
+        if (step === 'graph') setProgress(85)
+        if (step === 'embeddings') setProgress(95)
+        if (step === 'done') {
+          setProgress(100)
+          setUploadStatus('done')
+        }
+      })
+    } catch (err) {
+      console.error(err)
+      setUploadStatus('error')
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-6xl animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Document Upload Center</h1>
-        <p className="text-muted-foreground mt-1">Ingest manuals, schematics, and logs into the Knowledge Graph.</p>
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         
         {/* Left Column: Upload Area & Queue */}
         <div className="space-y-6 lg:col-span-2">
           
-          <Card className="border-dashed border-2 border-primary/20 bg-primary/5 shadow-none transition-colors hover:bg-primary/10 hover:border-primary/40 cursor-pointer">
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileChange} 
+            className="hidden" 
+            accept=".pdf,.docx,.txt,.csv"
+          />
+          <Card 
+            className="border-dashed border-2 border-primary/20 bg-primary/5 shadow-none transition-colors hover:bg-primary/10 hover:border-primary/40 cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+          >
             <CardContent className="flex flex-col items-center justify-center py-16 text-center">
               <div className="bg-primary/10 p-4 rounded-full mb-4">
                 <UploadCloud className="w-8 h-8 text-primary" />
@@ -28,7 +89,7 @@ export function UploadCenterPage() {
               <p className="text-sm text-muted-foreground max-w-sm mb-6">
                 Supported formats: PDF, CSV, DOCX, TXT. Maximum file size: 100MB.
               </p>
-              <Button>Select Files</Button>
+              <Button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>Select Files</Button>
             </CardContent>
           </Card>
 
@@ -37,18 +98,15 @@ export function UploadCenterPage() {
               <CardTitle className="text-lg">Active Uploads & Processing</CardTitle>
             </CardHeader>
             <CardContent className="pt-4 space-y-4">
-              <ActiveUploadItem 
-                filename="Compressor_M7_Maintenance_Manual_2023.pdf" 
-                size="4.2 MB" 
-                progress={100} 
-                status="processing"
-              />
-              <ActiveUploadItem 
-                filename="Q4_Sensor_Telemetry_Dump.csv" 
-                size="89.1 MB" 
-                progress={45} 
-                status="uploading"
-              />
+              {activeFile && (
+                <ActiveUploadItem 
+                  filename={activeFile.name}
+                  size={`${(activeFile.size / (1024*1024)).toFixed(2)} MB`}
+                  progress={progress}
+                  status={uploadStatus === 'error' ? 'failed' : uploadStatus === 'done' ? 'processing' : 'uploading'}
+                />
+              )}
+              {!activeFile && <p className="text-sm text-muted-foreground">No active uploads.</p>}
             </CardContent>
           </Card>
         </div>
@@ -71,25 +129,25 @@ export function UploadCenterPage() {
                 <PipelineStep 
                   title="Upload Complete" 
                   description="File stored in secure bucket." 
-                  status="done" 
+                  status={uploadStatus !== 'idle' ? 'done' : 'pending'}
                   icon={CheckCircle2} 
                 />
                 <PipelineStep 
                   title="OCR & Text Extraction" 
                   description="Extracting text and tables." 
-                  status="done" 
+                  status={['knowledge', 'graph', 'embeddings', 'done'].includes(pipelineStep) ? 'done' : pipelineStep === 'extract' ? 'active' : 'pending'} 
                   icon={File} 
                 />
                 <PipelineStep 
                   title="Entity Recognition" 
                   description="Identifying assets and parameters." 
-                  status="active" 
+                  status={['graph', 'embeddings', 'done'].includes(pipelineStep) ? 'done' : pipelineStep === 'knowledge' ? 'active' : 'pending'} 
                   icon={Network} 
                 />
                 <PipelineStep 
                   title="Vector Indexing" 
                   description="Embedding to Chroma DB." 
-                  status="pending" 
+                  status={pipelineStep === 'done' ? 'done' : pipelineStep === 'embeddings' ? 'active' : 'pending'} 
                   icon={Database} 
                 />
                 

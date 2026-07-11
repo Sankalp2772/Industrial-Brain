@@ -9,8 +9,43 @@ import { ConfidenceScore } from "@/components/ai/ConfidenceScore"
 import { EvidencePanel } from "@/components/ai/EvidencePanel"
 import { SuggestedQuestions } from "@/components/ai/SuggestedQuestions"
 
+import { ApiService } from "../services/api"
+
 export function CopilotPage() {
   const [inputValue, setInputValue] = React.useState("")
+  const [messages, setMessages] = React.useState<{role: string, content: string, sources?: any[]}[]>([
+    {
+      role: 'assistant',
+      content: 'Hello! I am the Industrial AI Copilot. Ask me questions about your uploaded manuals, schematics, and assets.'
+    }
+  ])
+  const [isTyping, setIsTyping] = React.useState(false)
+
+  const handleSend = async () => {
+    if (!inputValue.trim()) return
+    const userMessage = inputValue
+    setInputValue("")
+    setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    setIsTyping(true)
+
+    try {
+      const aiResponse = await ApiService.queryCopilot(userMessage)
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: aiResponse.answer,
+        sources: aiResponse.sources
+      }])
+    } catch (e) {
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: 'Error: Could not reach the backend copilot API.' 
+      }])
+    } finally {
+      setIsTyping(false)
+    }
+  }
+
+  const latestSources = messages.filter(m => m.role === 'assistant' && m.sources && m.sources.length > 0).pop()?.sources || []
 
   return (
     <div className="flex h-[calc(100vh-8rem)] animate-in fade-in duration-500 overflow-hidden bg-background">
@@ -46,34 +81,35 @@ export function CopilotPage() {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32">
           
-          <UserMessage content="Why is Pump A-42 showing high vibration today? Does it need immediate maintenance?" />
-          
-          <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-              <Bot className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <div className="flex-1 space-y-4">
-              <div className="text-sm font-medium">Industrial AI Copilot</div>
-              <div className="text-sm leading-relaxed text-foreground/90 space-y-4">
-                <p>
-                  Pump A-42 is currently experiencing a <span className="font-semibold text-warning text-amber-600">12% increase in vibration</span> on the primary bearing assembly, crossing the 4.2g threshold at 08:14 AM today<CitationBadge index={1} />.
-                </p>
-                <p>
-                  According to the <span className="font-medium text-primary">Centrifugal Pump Operating Manual v4</span><CitationBadge index={2} />, sustained vibration above 4.0g indicates potential bearing wear or misalignment. Looking at the maintenance history, the bearings were last replaced on Jan 10, 2023, following a critical failure<CitationBadge index={3} />.
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Recommendation:</span> Immediate maintenance is not required to prevent catastrophic failure today, but I strongly suggest scheduling a proactive inspection of the bearing housing during the upcoming weekend window to prevent an unplanned outage next week.
-                </p>
+          {messages.map((msg, i) => (
+            msg.role === 'user' ? (
+              <UserMessage key={i} content={msg.content} />
+            ) : (
+              <div key={i} className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-5 h-5 text-primary-foreground" />
+                </div>
+                <div className="flex-1 space-y-4">
+                  <div className="text-sm font-medium">Industrial AI Copilot</div>
+                  <div className="text-sm leading-relaxed text-foreground/90 space-y-4">
+                    <p>{msg.content}</p>
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2 pt-2">
-                <SuggestedQuestions questions={[
-                  "Create a work order for a bearing inspection.",
-                  "Show me the telemetry graph for the last 24 hours.",
-                  "What is the part number for the replacement bearing?"
-                ]} />
-              </div>
-            </div>
-          </div>
+            )
+          ))}
+
+          {isTyping && (
+             <div className="flex gap-4">
+               <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                 <Bot className="w-5 h-5 text-primary-foreground" />
+               </div>
+               <div className="flex-1 space-y-4">
+                 <div className="text-sm font-medium">Industrial AI Copilot</div>
+                 <div className="text-sm text-muted-foreground animate-pulse">Thinking...</div>
+               </div>
+             </div>
+          )}
 
         </div>
 
@@ -85,8 +121,11 @@ export function CopilotPage() {
               className="pr-12 h-14 bg-surface shadow-lg border-primary/20 focus-visible:ring-primary/30"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSend()
+              }}
             />
-            <Button size="icon" className="absolute right-2 top-2 h-10 w-10">
+            <Button size="icon" className="absolute right-2 top-2 h-10 w-10" onClick={handleSend} disabled={isTyping}>
               <Send className="w-4 h-4" />
             </Button>
           </div>
@@ -113,22 +152,18 @@ export function CopilotPage() {
 
           <div className="space-y-3">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Source Documents</div>
-            <EvidencePanel 
-              sources={[
-                {
-                  id: "1",
-                  title: "Centrifugal Pump Manual v4",
-                  type: "manual",
-                  snippet: "Section 4.2: Sustained vibration above 4.0g on the primary bearing assembly indicates severe wear requiring immediate inspection to prevent housing damage."
-                },
-                {
-                  id: "2",
-                  title: "Pump A-42 Maintenance Log",
-                  type: "log",
-                  snippet: "2023-01-10: Replaced seized bearing assembly after critical failure. Pump was offline for 14 hours."
-                }
-              ]}
-            />
+            {latestSources.length > 0 ? (
+              <EvidencePanel 
+                sources={latestSources.map((s, idx) => ({
+                  id: String(idx+1),
+                  title: s.document,
+                  type: "document",
+                  snippet: s.text
+                }))}
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">No sources required for this query.</div>
+            )}
           </div>
 
           <div className="space-y-3">

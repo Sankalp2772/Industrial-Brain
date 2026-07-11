@@ -80,5 +80,52 @@ export const ApiService = {
       console.error(e)
       return { knowledgeGrowth: [], fleetHealth: [], failureTrends: [], mostQueriedAssets: [] }
     }
+  },
+
+  async uploadDocument(file: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+    
+    const res = await fetch(`${API_BASE}/documents/upload`, {
+      method: 'POST',
+      body: formData
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error(json.message)
+    return json.data.id
+  },
+
+  async processDocumentPipeline(docId: string, onProgress: (step: string) => void): Promise<void> {
+    try {
+      onProgress('extract')
+      await fetch(`${API_BASE}/extraction/document/${docId}/extract`, { method: 'POST' })
+      
+      onProgress('knowledge')
+      await fetch(`${API_BASE}/extraction/document/${docId}/knowledge`, { method: 'POST' })
+      
+      onProgress('graph')
+      await fetch(`${API_BASE}/graph/documents/${docId}/graph`, { method: 'POST' })
+      
+      onProgress('embeddings')
+      await fetch(`${API_BASE}/embeddings/documents/${docId}/embeddings`, { method: 'POST' })
+      
+      onProgress('done')
+    } catch (e) {
+      console.error(e)
+      throw e
+    }
+  },
+
+  async queryCopilot(question: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/copilot/query`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ question })
+    })
+    const json = await res.json()
+    if (!json.success) throw new Error(json.message)
+    return json.data
   }
 }
