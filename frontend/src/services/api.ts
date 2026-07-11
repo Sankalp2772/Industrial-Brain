@@ -98,16 +98,16 @@ export const ApiService = {
   async processDocumentPipeline(docId: string, onProgress: (step: string) => void): Promise<void> {
     try {
       onProgress('extract')
-      await fetch(`${API_BASE}/extraction/document/${docId}/extract`, { method: 'POST' })
+      await fetch(`${API_BASE}/documents/${docId}/extract`, { method: 'POST' })
       
       onProgress('knowledge')
-      await fetch(`${API_BASE}/extraction/document/${docId}/knowledge`, { method: 'POST' })
+      await fetch(`${API_BASE}/documents/${docId}/knowledge`, { method: 'POST' })
       
       onProgress('graph')
       await fetch(`${API_BASE}/graph/documents/${docId}/graph`, { method: 'POST' })
       
       onProgress('embeddings')
-      await fetch(`${API_BASE}/embeddings/documents/${docId}/embeddings`, { method: 'POST' })
+      await fetch(`${API_BASE}/embeddings/documents/${docId}/embed`, { method: 'POST' })
       
       onProgress('done')
     } catch (e) {
