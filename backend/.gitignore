@@ -1,23 +1,12 @@
-# Virtual Environment
-.venv/
-
-# Python Cache
 __pycache__/
 *.pyc
-
-# Environment Variables
+venv/
+.venv/
+env/
 .env
-
-# Uploaded Files
+data/
 uploads/
-
-# IDE Files
-.vscode/
-.idea/
-
-# OS Files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
+processed/
+knowledge/
+chroma_db/
+*.db
