@@ -61,6 +61,8 @@ export function UploadCenterPage() {
     <div className="space-y-6 max-w-6xl animate-in fade-in duration-500">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Document Upload Center</h1>
+        <p className="text-muted-foreground mt-1">Ingest manuals, schematics, and logs into the Knowledge Graph.</p>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         
