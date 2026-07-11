@@ -1,6 +1,7 @@
 import os
 import uuid
 import shutil
+import hashlib
 from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from app.core.config import settings
@@ -29,6 +30,29 @@ class DocumentService:
         if file_size > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=400, detail=f"File exceeds maximum size of {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB.")
 
+        # Magic Bytes Validation
+        magic_bytes = file.file.read(4)
+        file.file.seek(0)
+        is_valid_magic = False
+        if file.content_type == "application/pdf" and magic_bytes.startswith(b'%PDF'):
+            is_valid_magic = True
+        elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" and magic_bytes.startswith(b'PK\x03\x04'):
+            is_valid_magic = True
+            
+        if not is_valid_magic:
+            raise HTTPException(status_code=422, detail="File content does not match the provided content type, or the file is corrupted.")
+
+        # Duplicate Detection via SHA-256
+        sha256_hash = hashlib.sha256()
+        while chunk := file.file.read(8192):
+            sha256_hash.update(chunk)
+        file_hash = sha256_hash.hexdigest()
+        file.file.seek(0)
+
+        existing_doc = self.repo.db.query(Document).filter(Document.file_hash == file_hash).first()
+        if existing_doc:
+            return existing_doc
+
         # Generate unique filename
         ext = os.path.splitext(file.filename)[1]
         unique_filename = f"{uuid.uuid4()}{ext}"
@@ -46,6 +70,7 @@ class DocumentService:
             "filename": unique_filename,
             "original_filename": file.filename,
             "file_size": file_size,
+            "file_hash": file_hash,
             "content_type": file.content_type,
             "storage_path": storage_path,
         }

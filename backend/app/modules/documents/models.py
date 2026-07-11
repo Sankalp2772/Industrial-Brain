@@ -10,6 +10,7 @@ class Document(Base):
     filename = Column(String, unique=True, index=True, nullable=False)
     original_filename = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
+    file_hash = Column(String, unique=True, nullable=True, index=True)
     content_type = Column(String, nullable=False)
     upload_time = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     status = Column(String, default="Uploaded")

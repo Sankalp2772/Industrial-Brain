@@ -20,16 +20,37 @@ export function CopilotPage() {
     }
   ])
   const [isTyping, setIsTyping] = React.useState(false)
+  const [queryCache, setQueryCache] = React.useState<Record<string, any>>({})
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
     const userMessage = inputValue
     setInputValue("")
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
+    
+    // Check Cache First
+    const normalizedQuery = userMessage.trim().toLowerCase()
+    if (queryCache[normalizedQuery]) {
+      const cachedResponse = queryCache[normalizedQuery]
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: cachedResponse.answer,
+        sources: cachedResponse.sources
+      }])
+      return
+    }
+
     setIsTyping(true)
 
     try {
       const aiResponse = await ApiService.queryCopilot(userMessage)
+      
+      // Save to Cache
+      setQueryCache(prev => ({
+        ...prev,
+        [normalizedQuery]: aiResponse
+      }))
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: aiResponse.answer,
