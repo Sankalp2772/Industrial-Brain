@@ -1,0 +1,162 @@
+{
+  "System Reset": {
+    "status": "PASS",
+    "time": 2.4275879859924316,
+    "data": null
+  },
+  "Upload Valid PDF": {
+    "status": "PASS",
+    "time": 2.1047520637512207,
+    "data": null
+  },
+  "Upload Duplicate PDF": {
+    "status": "FAIL",
+    "time": 2.082322597503662,
+    "error": "Duplicate upload succeeded, should have failed or returned existing."
+  },
+  "Upload Corrupt PDF": {
+    "status": "FAIL",
+    "time": 2.0831451416015625,
+    "error": "Corrupt upload succeeded, should have failed."
+  },
+  "Extract Text": {
+    "status": "PASS",
+    "time": 2.105067253112793,
+    "data": null
+  },
+  "Generate Knowledge": {
+    "status": "PASS",
+    "time": 17.95119333267212,
+    "data": null
+  },
+  "Build Graph": {
+    "status": "PASS",
+    "time": 2.8762400150299072,
+    "data": null
+  },
+  "Generate Embeddings": {
+    "status": "FAIL",
+    "time": 2.0600671768188477,
+    "error": "Embeddings failed: {\"success\":false,\"message\":\"Not Found\",\"data\":null}"
+  },
+  "Copilot Query": {
+    "status": "PASS",
+    "time": 19.859638690948486,
+    "data": {
+      "success": true,
+      "message": "Copilot answered successfully",
+      "data": {
+        "answer": "No supporting evidence was found.",
+        "confidence": 0.0,
+        "citations": [],
+        "related_assets": [],
+        "reasoning_steps": [
+          "Analyze the user's question regarding the standard procedure for Pump A-42.",
+          "Examine the provided context, which indicates 'No semantic documentation found.' and contains no graph knowledge.",
+          "Determine that there is no supporting evidence available to answer the question.",
+          "Formulate the response stating 'No supporting evidence was found.' as required."
+        ],
+        "stats": {
+          "total_time_sec": 17.78,
+          "retrieval_time_sec": 1.96,
+          "generation_time_sec": 15.82
+        }
+      }
+    }
+  },
+  "Analytics Dashboard": {
+    "status": "PASS",
+    "time": 2.851126194000244,
+    "data": {
+      "success": true,
+      "message": "Dashboard analytics retrieved",
+      "data": {
+        "kpis": [
+          {
+            "title": "Total Documents",
+            "value": "3",
+            "trend": "+12%",
+            "trendDirection": "up"
+          },
+          {
+            "title": "Total Assets",
+            "value": "1",
+            "trend": "+4%",
+            "trendDirection": "up"
+          },
+          {
+            "title": "Graph Nodes",
+            "value": "2",
+            "trend": "Live",
+            "trendDirection": "neutral"
+          },
+          {
+            "title": "Vector Embeddings",
+            "value": "2450",
+            "trend": "Live",
+            "trendDirection": "neutral"
+          }
+        ],
+        "healthDistribution": {
+          "labels": [
+            "Healthy",
+            "Warning",
+            "Critical"
+          ],
+          "series": [
+            {
+              "name": "Assets",
+              "data": [
+                45.0,
+                12.0,
+                3.0
+              ]
+            }
+          ]
+        },
+        "riskDistribution": {
+          "labels": [
+            "Low",
+            "Medium",
+            "High",
+            "Critical"
+          ],
+          "series": [
+            {
+              "name": "Assets",
+              "data": [
+                40.0,
+                10.0,
+                7.0,
+                3.0
+              ]
+            }
+          ]
+        },
+        "incidentTrends": {
+          "labels": [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun"
+          ],
+          "series": [
+            {
+              "name": "Incidents",
+              "data": [
+                4.0,
+                2.0,
+                6.0,
+                1.0,
+                3.0,
+                0.0
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}
