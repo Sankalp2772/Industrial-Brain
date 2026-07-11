@@ -13,7 +13,6 @@ export function UploadCenterPage() {
   const [uploadStatus, setUploadStatus] = React.useState<'idle'|'uploading'|'processing'|'done'|'error'>('idle')
   const [progress, setProgress] = React.useState(0)
   const [pipelineStep, setPipelineStep] = React.useState<string>('none')
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -69,15 +68,15 @@ export function UploadCenterPage() {
         <div className="space-y-6 lg:col-span-2">
           
           <input 
+            id="file-upload"
             type="file" 
-            ref={fileInputRef} 
             onChange={handleFileChange} 
             className="hidden" 
             accept=".pdf,.docx,.txt,.csv"
           />
           <Card 
             className="border-dashed border-2 border-primary/20 bg-primary/5 shadow-none transition-colors hover:bg-primary/10 hover:border-primary/40 cursor-pointer"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => document.getElementById('file-upload')?.click()}
             onDragOver={(e) => e.preventDefault()}
             onDrop={handleDrop}
           >
@@ -89,7 +88,7 @@ export function UploadCenterPage() {
               <p className="text-sm text-muted-foreground max-w-sm mb-6">
                 Supported formats: PDF, CSV, DOCX, TXT. Maximum file size: 100MB.
               </p>
-              <Button onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>Select Files</Button>
+              <Button onClick={(e) => { e.stopPropagation(); document.getElementById('file-upload')?.click() }}>Select Files</Button>
             </CardContent>
           </Card>
 
