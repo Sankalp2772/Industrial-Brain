@@ -6,7 +6,7 @@ from sqlalchemy import text
 from app.core.config import settings
 from app.core.dependencies import get_db
 from app.modules.graph.builder import neo4j_conn
-from app.modules.embeddings.repository import get_chroma_client
+from app.modules.embeddings.repository import chroma_repo
 from app.shared.responses import SuccessResponse
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -49,9 +49,9 @@ def get_system_status(db: Session = Depends(get_db)):
         
     # Check Chroma
     try:
-        client = get_chroma_client()
-        client.heartbeat()
-        status["chroma"] = "Connected"
+        if chroma_repo.client:
+            chroma_repo.client.heartbeat()
+            status["chroma"] = "Connected"
     except Exception:
         pass
         
@@ -100,11 +100,11 @@ def reset_system(db: Session = Depends(get_db)):
         
     # 3. Clear ChromaDB
     try:
-        client = get_chroma_client()
-        try:
-            client.delete_collection("industrial_knowledge")
-        except:
-            pass
+        if chroma_repo.client:
+            try:
+                chroma_repo.client.delete_collection("industrial_knowledge")
+            except:
+                pass
     except Exception as e:
         return {"success": False, "message": f"Chroma reset failed: {e}"}
         
