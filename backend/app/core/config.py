@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY_1: str = ""
     GEMINI_API_KEY_2: str = ""
     GEMINI_API_KEY_3: str = ""
+    GEMINI_MODEL: str = "gemini-2.0-flash"
 
     # Graph Config
     NEO4J_URI: str = "neo4j+s://your-instance.databases.neo4j.io"

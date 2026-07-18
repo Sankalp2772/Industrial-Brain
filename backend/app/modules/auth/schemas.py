@@ -18,7 +18,6 @@ class ChangePasswordRequest(BaseModel):
 
 class UserResponse(UserBase):
     id: str
-    uuid: str
     role: str
     is_active: bool
     created_at: Optional[datetime]

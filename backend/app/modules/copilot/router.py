@@ -6,7 +6,8 @@ from app.core.dependencies import get_db
 from app.modules.copilot.service import CopilotService
 from app.modules.copilot.schema import CopilotQueryRequest, HistoryItem
 from app.modules.copilot.retriever import HybridRetriever
-from app.modules.copilot.generator import CopilotGenerator, GEMINI_MODEL
+from app.modules.copilot.generator import CopilotGenerator
+from app.core.config import settings
 from app.modules.embeddings.repository import chroma_repo
 from app.modules.graph.builder import Neo4jConnection
 from app.shared.responses import SuccessResponse
@@ -42,7 +43,7 @@ def copilot_health(db: Session = Depends(get_db)):
         "knowledge_ready": False,
         "embeddings_ready": False,
         "copilot_ready": False,
-        "model": GEMINI_MODEL,
+        "model": settings.GEMINI_MODEL,
         "chroma_chunk_count": 0,
     }
 

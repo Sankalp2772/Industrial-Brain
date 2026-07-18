@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -16,6 +16,8 @@ from app.modules.maintenance.router import router as maintenance_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.system.router import router as system_router
 from app.shared.responses import ErrorResponse
+from app.modules.auth.router import router as auth_router
+from app.modules.auth.dependencies import get_current_active_user
 from app.modules.auth.models import User  # Must be imported before create_all so the users table is registered
 import time
 import logging
@@ -30,10 +32,17 @@ app = FastAPI(
     description="Backend API for Industrial Brain - Industrial Knowledge Intelligence Platform"
 )
 
+import os
+
 # CORS middleware
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For dev only
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -75,10 +84,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         status_code=exc.status_code,
         content=ErrorResponse(success=False, message=str(exc.detail)).model_dump()
     )
-
-from fastapi import Depends
-from app.modules.auth.router import router as auth_router
-from app.modules.auth.dependencies import get_current_active_user  # noqa: E402
 
 # Include Auth Router (Public)
 app.include_router(auth_router, prefix=settings.API_V1_STR)

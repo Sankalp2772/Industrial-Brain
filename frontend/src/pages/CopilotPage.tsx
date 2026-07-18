@@ -8,6 +8,7 @@ import { CitationBadge } from "@/components/ai/CitationBadge"
 import { ConfidenceScore } from "@/components/ai/ConfidenceScore"
 import { EvidencePanel } from "@/components/ai/EvidencePanel"
 import { SuggestedQuestions } from "@/components/ai/SuggestedQuestions"
+import ReactMarkdown from 'react-markdown'
 
 import { ApiService } from "../services/api"
 
@@ -21,6 +22,12 @@ export function CopilotPage() {
   ])
   const [isTyping, setIsTyping] = React.useState(false)
   const [queryCache, setQueryCache] = React.useState<Record<string, any>>({})
+  const [lastResponse, setLastResponse] = React.useState<any>(null)
+  const [history, setHistory] = React.useState<any[]>([])
+
+  React.useEffect(() => {
+    ApiService.getCopilotHistory().then(setHistory)
+  }, [])
 
   const handleSend = async () => {
     if (!inputValue.trim()) return
@@ -35,8 +42,9 @@ export function CopilotPage() {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: cachedResponse.answer,
-        sources: cachedResponse.sources
+        sources: cachedResponse.citations
       }])
+      setLastResponse(cachedResponse)
       return
     }
 
@@ -54,8 +62,9 @@ export function CopilotPage() {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: aiResponse.answer,
-        sources: aiResponse.sources
+        sources: aiResponse.citations
       }])
+      setLastResponse(aiResponse)
     } catch (e) {
       setMessages(prev => [...prev, { 
         role: 'assistant', 
@@ -79,12 +88,11 @@ export function CopilotPage() {
           </Button>
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2 px-2">Today</div>
-          <HistoryItem title="Pump A-42 Vibration Analysis" active />
-          <HistoryItem title="Maintenance Schedule Q4" />
-          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-6 px-2">Yesterday</div>
-          <HistoryItem title="Compressor M7 Failure Root Cause" />
-          <HistoryItem title="Safety Protocol Updates" />
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2 px-2">Recent History</div>
+          {history.length === 0 && <div className="text-xs px-2 text-muted-foreground">No history available</div>}
+          {history.map((h, i) => (
+            <HistoryItem key={h.id || i} title={h.question} />
+          ))}
         </div>
       </div>
 
@@ -94,9 +102,9 @@ export function CopilotPage() {
         <div className="h-14 border-b bg-surface flex items-center px-6 justify-between flex-shrink-0">
           <div className="flex items-center">
             <Cpu className="w-5 h-5 text-primary mr-2" />
-            <h2 className="font-semibold">Pump A-42 Vibration Analysis</h2>
+            <h2 className="font-semibold">Industrial AI Copilot</h2>
           </div>
-          <Badge variant="outline" className="bg-primary/5 text-primary text-xs">Model: Gemini 1.5 Pro</Badge>
+          <Badge variant="outline" className="bg-primary/5 text-primary text-xs">Model: Gemini 2.0 Flash</Badge>
         </div>
 
         {/* Messages */}
@@ -113,7 +121,9 @@ export function CopilotPage() {
                 <div className="flex-1 space-y-4">
                   <div className="text-sm font-medium">Industrial AI Copilot</div>
                   <div className="text-sm leading-relaxed text-foreground/90 space-y-4">
-                    <p>{msg.content}</p>
+                    <ReactMarkdown className="prose prose-invert prose-sm max-w-none">
+                      {msg.content}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </div>
@@ -168,7 +178,7 @@ export function CopilotPage() {
         <div className="p-4 space-y-6">
           <div className="space-y-2">
              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Overall Confidence</div>
-             <ConfidenceScore score={92} />
+             <ConfidenceScore score={Math.round((lastResponse?.confidence ?? 0) * 100)} />
           </div>
 
           <div className="space-y-3">
@@ -179,7 +189,7 @@ export function CopilotPage() {
                   id: String(idx+1),
                   title: s.document,
                   type: "document",
-                  snippet: s.text
+                  snippet: s.chunk
                 }))}
               />
             ) : (
@@ -190,12 +200,14 @@ export function CopilotPage() {
           <div className="space-y-3">
             <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Related Assets</div>
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" className="h-auto py-2 px-3 justify-start bg-background text-xs">
-                <Database className="w-3 h-3 mr-2 text-primary flex-shrink-0" /> Pump A-42
-              </Button>
-              <Button variant="outline" className="h-auto py-2 px-3 justify-start bg-background text-xs">
-                <Settings className="w-3 h-3 mr-2 text-muted-foreground flex-shrink-0" /> Bearing Assy
-              </Button>
+              {(lastResponse?.related_assets ?? []).map((asset: string) => (
+                <Button key={asset} variant="outline" className="h-auto py-2 px-3 justify-start bg-background text-xs">
+                  <Database className="w-3 h-3 mr-2 text-primary flex-shrink-0" /> {asset}
+                </Button>
+              ))}
+              {(lastResponse?.related_assets?.length === 0 || !lastResponse) && (
+                <div className="text-sm text-muted-foreground col-span-2">No related assets detected.</div>
+              )}
             </div>
           </div>
         </div>

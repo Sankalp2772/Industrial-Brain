@@ -8,9 +8,6 @@ from app.core.config import settings, get_gemini_key
 from app.modules.copilot.schema import CopilotResponse
 
 logger = logging.getLogger(__name__)
-
-# The correct working model name to use
-GEMINI_MODEL = "gemini-2.0-flash"
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds between retries
 
@@ -46,7 +43,7 @@ class CopilotGenerator:
         for attempt in range(MAX_RETRIES):
             try:
                 response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
+                    model=settings.GEMINI_MODEL,
                     contents=[
                         types.Content(role="user", parts=[
                             types.Part.from_text(text=prompt),
@@ -141,7 +138,7 @@ You MUST return your response as a valid JSON object with the following exact st
         for attempt in range(MAX_RETRIES):
             try:
                 response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
+                    model=settings.GEMINI_MODEL,
                     contents=prompt,
                 )
                 return response.text

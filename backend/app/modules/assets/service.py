@@ -10,7 +10,6 @@ from app.modules.assets.aggregator import AssetAggregator
 
 logger = logging.getLogger(__name__)
 
-GEMINI_MODEL = "gemini-2.0-flash"
 MAX_RETRIES = 3
 
 class AssetService:
@@ -31,12 +30,13 @@ class AssetService:
         counts = agg.aggregate_counts()
         
         asset_props = neighborhood["asset"]
-        asset_type = asset_props.pop("type", "Unknown")
+        asset_type = asset_props.get("type", "Unknown")
+        asset_props_copy = {k: v for k, v in asset_props.items() if k != "type"}
         
         return {
             "asset_id": asset_id,
             "type": asset_type,
-            "properties": asset_props,
+            "properties": asset_props_copy,
             "health": health,
             **counts
         }
@@ -90,7 +90,7 @@ DATA:
         for attempt in range(MAX_RETRIES):
             try:
                 response = self.client.models.generate_content(
-                    model=GEMINI_MODEL,
+                    model=settings.GEMINI_MODEL,
                     contents=prompt
                 )
                 return response.text.strip()

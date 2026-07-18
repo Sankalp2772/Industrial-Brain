@@ -2,7 +2,7 @@ import axios from 'axios'
 import { Document, DashboardMetrics, Incident, SystemStatus, AnalyticsData } from '../types'
 import { useAuthStore } from '../store/useAuthStore'
 
-const API_BASE = 'http://localhost:8000/api/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -158,6 +158,16 @@ export const ApiService = {
   async queryCopilot(question: string): Promise<any> {
     const res = await apiClient.post(`/copilot/query`, { question })
     return res.data.data
+  },
+
+  async getCopilotHistory(): Promise<any[]> {
+    try {
+      const res = await apiClient.get('/copilot/history')
+      return res.data.data
+    } catch (e) {
+      console.error(e)
+      return []
+    }
   },
   
   client: apiClient
