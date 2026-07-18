@@ -27,7 +27,7 @@ def get_system_status(db: Session = Depends(get_db)):
         "sqlite": "Disconnected",
         "neo4j": "Disconnected",
         "chroma": "Disconnected",
-        "gemini": "Configured" if settings.GEMINI_API_KEY else "Missing API Key",
+        "gemini": f"Configured ({len(settings.GEMINI_API_KEYS)} keys)" if len(settings.GEMINI_API_KEYS) > 0 else "Missing API Keys",
         "disk_usage": {}
     }
     

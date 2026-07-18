@@ -16,12 +16,13 @@ from app.modules.maintenance.router import router as maintenance_router
 from app.modules.analytics.router import router as analytics_router
 from app.modules.system.router import router as system_router
 from app.shared.responses import ErrorResponse
+from app.modules.auth.models import User  # Must be imported before create_all so the users table is registered
 import time
 import logging
 
 logger = logging.getLogger("api_latency")
 logger.setLevel(logging.INFO)
-Base.metadata.create_all(bind=engine)
+Base.metadata.create_all(bind=engine)  # Creates all tables including users
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -75,16 +76,26 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         content=ErrorResponse(success=False, message=str(exc.detail)).model_dump()
     )
 
-# Include routers
-app.include_router(documents_router, prefix=settings.API_V1_STR)
-app.include_router(extraction_router, prefix=settings.API_V1_STR)
-app.include_router(graph_router, prefix=settings.API_V1_STR)
-app.include_router(embeddings_router, prefix=settings.API_V1_STR)
-app.include_router(copilot_router, prefix=settings.API_V1_STR)
-app.include_router(assets_router, prefix=settings.API_V1_STR)
-app.include_router(maintenance_router, prefix=settings.API_V1_STR)
-app.include_router(analytics_router, prefix=settings.API_V1_STR)
-app.include_router(system_router, prefix=settings.API_V1_STR)
+from fastapi import Depends
+from app.modules.auth.router import router as auth_router
+from app.modules.auth.dependencies import get_current_active_user  # noqa: E402
+
+# Include Auth Router (Public)
+app.include_router(auth_router, prefix=settings.API_V1_STR)
+
+# Define protected dependencies
+protected = [Depends(get_current_active_user)]
+
+# Include Protected Routers
+app.include_router(documents_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(extraction_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(graph_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(embeddings_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(copilot_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(assets_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(maintenance_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(analytics_router, prefix=settings.API_V1_STR, dependencies=protected)
+app.include_router(system_router, prefix=settings.API_V1_STR, dependencies=protected)
 
 from fastapi.openapi.utils import get_openapi
 

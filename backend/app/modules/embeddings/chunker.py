@@ -1,60 +1,84 @@
 import re
-from typing import List
+from typing import List, Dict, Any
 
-def chunk_text(text: str, max_chunk_size: int = 1000, overlap: int = 150) -> List[str]:
+def chunk_text(text: str, max_chunk_size: int = 1000, overlap: int = 150) -> List[Dict[str, Any]]:
     """
-    Splits text into chunks of approximately max_chunk_size characters.
-    Attempts to break cleanly on double newlines (paragraphs) when possible.
+    Splits text into chunks of approximately max_chunk_size characters using semantic boundaries.
+    Returns a list of dicts containing text and metadata.
     """
-    # Simple double newline split
-    paragraphs = re.split(r'\n\s*\n', text)
-    
     chunks = []
-    current_chunk = ""
     
-    for para in paragraphs:
-        para = para.strip()
-        if not para:
+    # Semantic split by markdown headings or double newlines
+    blocks = re.split(r'\n\s*\n', text)
+    
+    current_chunk = ""
+    current_heading = ""
+    current_section = ""
+    paragraph_index = 0
+    
+    for block in blocks:
+        block = block.strip()
+        if not block:
             continue
             
-        # If a single paragraph is too huge, we must brute force split it
-        if len(para) > max_chunk_size:
+        # Detect headings
+        heading_match = re.match(r'^(#+)\s+(.*)', block)
+        if heading_match:
+            level = len(heading_match.group(1))
+            current_heading = heading_match.group(2).strip()
+            if level == 1 or level == 2:
+                current_section = current_heading
+                
+        # Handle huge single blocks
+        if len(block) > max_chunk_size:
             if current_chunk:
-                chunks.append(current_chunk.strip())
+                chunks.append({
+                    "text": current_chunk.strip(),
+                    "heading": current_heading,
+                    "section": current_section,
+                    "paragraph_index": paragraph_index
+                })
+                paragraph_index += 1
                 current_chunk = ""
-                
-            # Brute force split large paragraph with overlap
+            
+            # Brute force split with overlap
             start = 0
-            while start < len(para):
-                end = min(start + max_chunk_size, len(para))
-                
-                # If we're not at the very end, try to find a space to break at cleanly
-                if end < len(para):
-                    last_space = para.rfind(' ', start, end)
-                    if last_space > start + (max_chunk_size // 2):
-                        end = last_space
-                        
-                chunks.append(para[start:end].strip())
-                start = end - overlap
-                if start < 0:
-                    start = 0
+            while start < len(block):
+                end = min(start + max_chunk_size, len(block))
+                chunk_text_str = block[start:end]
+                chunks.append({
+                    "text": chunk_text_str.strip(),
+                    "heading": current_heading,
+                    "section": current_section,
+                    "paragraph_index": paragraph_index
+                })
+                paragraph_index += 1
+                start += max_chunk_size - overlap
             continue
             
-        # If adding this paragraph exceeds size, save current chunk and start new one
-        if len(current_chunk) + len(para) + 2 > max_chunk_size and current_chunk:
-            chunks.append(current_chunk.strip())
-            # For overlap across paragraphs, take the last bit of the previous chunk
-            overlap_text = current_chunk[-overlap:] if len(current_chunk) > overlap else current_chunk
-            # Find the first space to make the overlap clean
-            clean_overlap = overlap_text[overlap_text.find(' ')+1:] if ' ' in overlap_text else overlap_text
-            current_chunk = clean_overlap + "\n\n" + para
+        # Normal block aggregation
+        if len(current_chunk) + len(block) > max_chunk_size and current_chunk:
+            chunks.append({
+                "text": current_chunk.strip(),
+                "heading": current_heading,
+                "section": current_section,
+                "paragraph_index": paragraph_index
+            })
+            paragraph_index += 1
+            # Add overlap logic
+            current_chunk = current_chunk[-overlap:] + "\n\n" + block
         else:
             if current_chunk:
-                current_chunk += "\n\n" + para
+                current_chunk += "\n\n" + block
             else:
-                current_chunk = para
+                current_chunk = block
                 
     if current_chunk:
-        chunks.append(current_chunk.strip())
+        chunks.append({
+            "text": current_chunk.strip(),
+            "heading": current_heading,
+            "section": current_section,
+            "paragraph_index": paragraph_index
+        })
         
     return chunks

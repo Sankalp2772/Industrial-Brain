@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-API_URL = "http://localhost:8001/api/v1"
+API_URL = "http://localhost:8000/api/v1"
 SAMPLE_DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "sample-data"))
 
 def reset_system():

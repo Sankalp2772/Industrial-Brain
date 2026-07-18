@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/breadcrumb"
 import { useLocation, Link, useNavigate } from "react-router-dom"
 import { useAuthStore } from "@/store/useAuthStore"
+import { ApiService } from "@/services/api"
 
 export function TopNav() {
   const location = useLocation()
@@ -30,9 +31,13 @@ export function TopNav() {
   // Basic logic to generate breadcrumbs from pathname for the shell
   const paths = location.pathname.split('/').filter(Boolean)
   
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await ApiService.logout();
+    } finally {
+      logout()
+      navigate('/login')
+    }
   }
   
   return (

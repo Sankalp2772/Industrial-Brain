@@ -55,27 +55,32 @@ class EmbeddingService:
 
             # Prepare metadata for ChromaDB
             metadatas = []
-            for i in range(len(chunks)):
+            for i, chunk_obj in enumerate(chunks):
                 metadatas.append({
                     "document_id": doc_id,
-                    "document_type": doc_meta["document_type"],
-                    "asset_ids": doc_meta["asset_ids"],
                     "chunk_index": i,
-                    "upload_date": doc.created_at.isoformat() if hasattr(doc, 'created_at') else ""
+                    "asset_id": doc_meta.get("asset_id", ""),
+                    "asset_type": doc_meta.get("asset_type", ""),
+                    "equipment_tag": doc_meta.get("equipment_tag", ""),
+                    "document_type": doc_meta.get("document_type", ""),
+                    "heading": chunk_obj.get("heading", ""),
+                    "section": chunk_obj.get("section", ""),
+                    "paragraph_index": chunk_obj.get("paragraph_index", 0)
                 })
-            ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
 
             # 3. Generating Embeddings
             embed_start = time.time()
-            embeddings = self.provider.embed_texts(chunks)
+            texts_to_embed = [c["text"] for c in chunks]
+            embeddings = self.provider.embed_texts(texts_to_embed)
             embed_time = time.time() - embed_start
 
             # 4. Storage
             store_start = time.time()
+            chunk_ids = [f"{doc_id}_chunk_{i}" for i in range(len(chunks))]
             chroma_repo.add_chunks(
-                ids=ids,
+                ids=chunk_ids,
                 embeddings=embeddings,
-                documents=chunks,
+                documents=texts_to_embed,
                 metadatas=metadatas
             )
             store_time = time.time() - store_start

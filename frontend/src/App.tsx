@@ -11,6 +11,17 @@ import { AssetsPage } from "@/pages/AssetsPage"
 import { CopilotPage } from "@/pages/CopilotPage"
 import { AnalyticsPage } from "@/pages/AnalyticsPage"
 import { SettingsPage } from "@/pages/SettingsPage"
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary"
+import { RegisterPage } from "@/pages/RegisterPage"
+import { useAuthStore } from "@/store/useAuthStore"
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  return <>{children}</>
+}
 
 export default function App() {
   return (
@@ -19,18 +30,19 @@ export default function App() {
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         {/* Protected App Routes */}
-        <Route path="/app" element={<AppShell />}>
+        <Route path="/app" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
           <Route index element={<Navigate to="/app/dashboard" replace />} />
-          <Route path="dashboard" element={<DashboardPage />} />
-          <Route path="documents" element={<DocumentsLibraryPage />} />
-          <Route path="documents/upload" element={<UploadCenterPage />} />
-          <Route path="knowledge-graph" element={<KnowledgeGraphPage />} />
-          <Route path="assets" element={<AssetsPage />} />
-          <Route path="copilot" element={<CopilotPage />} />
-          <Route path="analytics" element={<AnalyticsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="dashboard" element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+          <Route path="documents" element={<ErrorBoundary><DocumentsLibraryPage /></ErrorBoundary>} />
+          <Route path="documents/upload" element={<ErrorBoundary><UploadCenterPage /></ErrorBoundary>} />
+          <Route path="knowledge-graph" element={<ErrorBoundary><KnowledgeGraphPage /></ErrorBoundary>} />
+          <Route path="assets" element={<ErrorBoundary><AssetsPage /></ErrorBoundary>} />
+          <Route path="copilot" element={<ErrorBoundary><CopilotPage /></ErrorBoundary>} />
+          <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+          <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
         </Route>
 
         {/* Fallback */}

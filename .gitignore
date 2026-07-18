@@ -1,0 +1,112 @@
+# =============================================================
+# Industrial Brain — .gitignore
+# =============================================================
+
+# ---- Secrets & Environment ----
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets.json
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# ---- Virtual Environments ----
+venv/
+.venv/
+env/
+ENV/
+.env/
+.virtualenv/
+
+# ---- Database ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Uploads (user data — never commit) ----
+backend/uploads/raw/*
+backend/uploads/processed/*
+backend/uploads/knowledge/*
+backend/uploads/chroma/*
+backend/uploads/chunks/*
+backend/uploads/json/*
+!backend/uploads/**/.gitkeep
+
+# ---- Node / Frontend ----
+node_modules/
+frontend/dist/
+frontend/build/
+*.tsbuildinfo
+.npm
+.yarn/
+
+# ---- Build Artifacts ----
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+htmlcov/
+.tox/
+.nox/
+
+# ---- Testing ----
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.cover
+.hypothesis/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ---- Logs ----
+*.log
+logs/
+*.log.*
+
+# ---- Temporary / Scratch ----
+*.tmp
+*.temp
+*.bak
+*.orig
+scratch/
+
+# ---- MyPy / Type checking ----
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/

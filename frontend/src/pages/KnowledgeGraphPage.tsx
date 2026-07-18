@@ -1,4 +1,6 @@
 import * as React from "react"
+import ForceGraph2D from 'react-force-graph-2d'
+import { ApiService } from "@/services/api"
 import { Search, Filter, Network, Database, FileText, ChevronRight, Share2, Maximize, ZoomIn, ZoomOut, Loader2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -13,17 +15,68 @@ export function KnowledgeGraphPage() {
   const [loading, setLoading] = React.useState(true)
   const [defaultAsset, setDefaultAsset] = React.useState<string>("P-101")
 
+  const containerRef = React.useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = React.useState({ width: 800, height: 600 })
+
+  React.useEffect(() => {
+    if (!containerRef.current) return
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (let entry of entries) {
+        setDimensions({
+          width: entry.contentRect.width,
+          height: entry.contentRect.height
+        })
+      }
+    })
+    resizeObserver.observe(containerRef.current)
+    return () => resizeObserver.disconnect()
+  }, [])
+
+  const graphData = React.useMemo(() => {
+    if (!nodeData || !nodeData.asset) return { nodes: [], links: [] }
+    
+    const nodes = []
+    const links = []
+    
+    nodes.push({
+      id: nodeData.asset.id,
+      name: nodeData.asset.name,
+      label: nodeData.asset.type || 'Asset',
+      val: 20,
+      color: 'hsl(221, 83%, 53%)'
+    })
+    
+    nodeData.connected_nodes?.forEach((n: any) => {
+      const isDoc = n._labels?.includes('Document')
+      nodes.push({
+        id: n.id || n.name,
+        name: n.name || n.id,
+        label: isDoc ? 'Document' : (n.type || 'Node'),
+        val: isDoc ? 10 : 15,
+        color: isDoc ? '#10b981' : '#f59e0b'
+      })
+    })
+    
+    nodeData.relationships?.forEach((r: any) => {
+      links.push({
+        source: r.source,
+        target: r.target,
+        name: r.type,
+        color: '#94a3b8'
+      })
+    })
+    
+    return { nodes, links }
+  }, [nodeData])
+
   React.useEffect(() => {
     async function loadInitial() {
       try {
-        const assetsRes = await fetch(`http://localhost:8001/api/v1/assets`);
-        const assetsJson = await assetsRes.json();
+        const assetsRes = await ApiService.client.get(`/assets`);
+        const assetsJson = assetsRes.data;
         if (assetsJson.success && assetsJson.data.assets.length > 0) {
           const targetAssetId = assetsJson.data.assets[0].id;
-          setDefaultAsset(targetAssetId)
           setSelectedNode(targetAssetId)
-        } else {
-          setSelectedNode("P-101")
         }
       } catch (e) {
         console.error(e)
@@ -33,12 +86,11 @@ export function KnowledgeGraphPage() {
   }, [])
 
   React.useEffect(() => {
-    if (!selectedNode) return;
     async function loadRelationships() {
       try {
         setLoading(true)
-        const res = await fetch(`http://localhost:8001/api/v1/assets/${selectedNode}/relationships`)
-        const json = await res.json()
+        const res = await ApiService.client.get(`/assets/${selectedNode}/relationships`)
+        const json = res.data
         if (json.success) {
           setNodeData(json.data)
         }
@@ -48,7 +100,9 @@ export function KnowledgeGraphPage() {
         setLoading(false)
       }
     }
-    loadRelationships()
+    if (selectedNode) {
+      loadRelationships()
+    }
   }, [selectedNode])
 
   return (
@@ -81,15 +135,38 @@ export function KnowledgeGraphPage() {
              <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur"><ZoomOut className="w-4 h-4" /></Button>
              <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur"><Maximize className="w-4 h-4" /></Button>
           </div>
-          <div className="flex-1 relative overflow-hidden flex items-center justify-center p-8">
-             <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0 w-full h-full">
-                <g className="cursor-pointer" onClick={() => setSelectedNode(defaultAsset)}>
-                  <circle cx="400" cy="300" r="40" fill="hsl(var(--primary))" opacity={selectedNode === defaultAsset ? "0.3" : "0.1"} stroke="hsl(var(--primary))" strokeWidth="2" />
-                  <circle cx="400" cy="300" r="25" fill="hsl(var(--primary))" />
-                  <text x="400" y="355" fontSize="14" fill="currentColor" textAnchor="middle" className="font-bold">{defaultAsset}</text>
-                </g>
-                <text x="400" y="380" fontSize="12" fill="currentColor" textAnchor="middle" className="text-muted-foreground">Click to load live graph relationships</text>
-             </svg>
+          <div ref={containerRef} className="flex-1 relative overflow-hidden flex items-center justify-center">
+             {graphData.nodes.length > 0 ? (
+               <ForceGraph2D
+                 graphData={graphData}
+                 width={dimensions.width}
+                 height={dimensions.height}
+                 nodeLabel="name"
+                 nodeColor="color"
+                 nodeRelSize={1}
+                 linkColor="color"
+                 linkWidth={2}
+                 linkDirectionalArrowLength={3.5}
+                 linkDirectionalArrowRelPos={1}
+                 onNodeClick={(node: any) => setSelectedNode(node.id)}
+                 nodeCanvasObject={(node: any, ctx, globalScale) => {
+                   const label = node.name || node.id;
+                   const fontSize = 12/globalScale;
+                   ctx.font = `${fontSize}px Sans-Serif`;
+                   ctx.beginPath();
+                   ctx.arc(node.x, node.y, node.val, 0, 2 * Math.PI, false);
+                   ctx.fillStyle = node.color;
+                   ctx.fill();
+                   
+                   ctx.textAlign = 'center';
+                   ctx.textBaseline = 'middle';
+                   ctx.fillStyle = '#1e293b'; // dark slate for contrast
+                   ctx.fillText(label, node.x, node.y + node.val + fontSize);
+                 }}
+               />
+             ) : (
+               <div className="text-muted-foreground flex items-center"><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading Graph...</div>
+             )}
           </div>
         </Card>
 

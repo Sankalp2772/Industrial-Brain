@@ -2,13 +2,13 @@ import json
 import logging
 from google import genai
 from google.genai import types
-from app.core.config import settings
+from app.core.config import settings, get_gemini_key
 
 logger = logging.getLogger(__name__)
 
 class RCAGenerator:
     def __init__(self):
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self.client = genai.Client(api_key=get_gemini_key())
         
     def generate_rca(self, context: dict) -> dict:
         prompt = f"""

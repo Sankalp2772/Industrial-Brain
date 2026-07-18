@@ -1,10 +1,10 @@
 from google import genai
-from app.core.config import settings
+from app.core.config import settings, get_gemini_key
 from typing import List
 
 class GeminiEmbeddingProvider:
     def __init__(self):
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self.client = genai.Client(api_key=get_gemini_key())
         self.model = "gemini-embedding-2"
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:

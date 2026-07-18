@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 from google import genai
 from google.genai import types
-from app.core.config import settings
+from app.core.config import settings, get_gemini_key
 from app.modules.documents.repository import DocumentRepository
 from app.modules.documents.models import Document
 from app.modules.extraction.extractor import extract_pdf, extract_docx
@@ -117,7 +117,7 @@ class ExtractionService:
         self.repo.update(doc_id, {"knowledge_status": "Processing"})
 
         try:
-            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            client = genai.Client(api_key=get_gemini_key())
             
             prompt = f"""
 You are an expert industrial knowledge extraction AI.

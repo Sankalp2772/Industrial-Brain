@@ -1,4 +1,5 @@
 import * as React from "react"
+import { ApiService } from "@/services/api"
 import { AlertTriangle, CheckCircle2, Clock, FileText, Settings, ShieldAlert, Sparkles, TrendingDown, TrendingUp, Activity, PenTool, Bot, Loader2 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -17,8 +18,8 @@ export function AssetsPage() {
   React.useEffect(() => {
     async function loadAsset() {
       try {
-        const assetsRes = await fetch(`http://localhost:8001/api/v1/assets`);
-        const assetsJson = await assetsRes.json();
+        const assetsRes = await ApiService.client.get(`/assets`);
+        const assetsJson = assetsRes.data;
         let targetAssetId = "P-101";
         if (assetsJson.success && assetsJson.data.assets.length > 0) {
           targetAssetId = assetsJson.data.assets[0].id;
@@ -26,16 +27,16 @@ export function AssetsPage() {
 
         const ASSET_ID = targetAssetId;
         const [profRes, timeRes, sumRes, docsRes] = await Promise.all([
-          fetch(`http://localhost:8001/api/v1/assets/${ASSET_ID}`),
-          fetch(`http://localhost:8001/api/v1/assets/${ASSET_ID}/timeline`),
-          fetch(`http://localhost:8001/api/v1/assets/${ASSET_ID}/summary`),
-          fetch(`http://localhost:8001/api/v1/assets/${ASSET_ID}/documents`)
+          ApiService.client.get(`/assets/${ASSET_ID}`),
+          ApiService.client.get(`/assets/${ASSET_ID}/timeline`),
+          ApiService.client.get(`/assets/${ASSET_ID}/summary`),
+          ApiService.client.get(`/assets/${ASSET_ID}/documents`)
         ])
         
-        const p = await profRes.json()
-        const t = await timeRes.json()
-        const s = await sumRes.json()
-        const d = await docsRes.json()
+        const p = profRes.data
+        const t = timeRes.data
+        const s = sumRes.data
+        const d = docsRes.data
         
         if (p.success) setProfile(p.data)
         if (t.success) setTimeline(t.data)

@@ -7,21 +7,40 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useAuthStore } from "@/store/useAuthStore"
 
+import { ApiService } from "@/services/api"
+import { useState } from "react"
+
 export function LoginPage() {
   const navigate = useNavigate()
   const login = useAuthStore((state) => state.login)
+  const [error, setError] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Simulate login
-    login({
-      id: "u-1",
-      name: "Senior Engineer",
-      email: "engineer@industrial.com",
-      role: "admin",
-      avatarInitials: "EN"
-    })
-    navigate("/app/dashboard")
+    setError("")
+    setIsLoading(true)
+    
+    const formData = new FormData(e.target as HTMLFormElement)
+    const email = formData.get("email") as string
+    const password = formData.get("password") as string
+
+    try {
+      const data = await ApiService.login({ email, password })
+      // Initialize initials
+      const initials = data.user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().substring(0,2) || "U"
+      
+      login({
+        ...data.user,
+        avatarInitials: initials
+      }, data.access_token)
+      
+      navigate("/app/dashboard")
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -93,16 +112,25 @@ export function LoginPage() {
                   </Label>
                 </div>
 
-                <div className="text-sm leading-6">
+                <div className="text-sm leading-6 flex gap-3">
+                  <Link to="/register" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                    Sign up
+                  </Link>
                   <a href="#" className="font-semibold text-primary hover:text-primary/80 transition-colors">
                     Forgot password?
                   </a>
                 </div>
               </div>
 
+              {error && (
+                <div className="text-red-500 text-sm font-medium text-center">
+                  {error}
+                </div>
+              )}
+
               <div>
-                <Button type="submit" className="w-full flex items-center justify-center">
-                  Sign in <ArrowRight className="ml-2 w-4 h-4" />
+                <Button type="submit" disabled={isLoading} className="w-full flex items-center justify-center">
+                  {isLoading ? "Signing in..." : "Sign in"} <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
             </form>

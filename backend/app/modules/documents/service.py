@@ -30,17 +30,22 @@ class DocumentService:
         if file_size > settings.MAX_UPLOAD_SIZE:
             raise HTTPException(status_code=400, detail=f"File exceeds maximum size of {settings.MAX_UPLOAD_SIZE / (1024*1024):.0f}MB.")
 
+        import magic
+
         # Magic Bytes Validation
-        magic_bytes = file.file.read(4)
+        magic_bytes = file.file.read(2048)  # Read enough for magic
         file.file.seek(0)
-        is_valid_magic = False
-        if file.content_type == "application/pdf" and magic_bytes.startswith(b'%PDF'):
-            is_valid_magic = True
-        elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" and magic_bytes.startswith(b'PK\x03\x04'):
-            is_valid_magic = True
+        
+        try:
+            mime_type = magic.from_buffer(magic_bytes, mime=True)
+        except Exception:
+            raise HTTPException(status_code=422, detail="Failed to analyze file content.")
             
-        if not is_valid_magic:
-            raise HTTPException(status_code=422, detail="File content does not match the provided content type, or the file is corrupted.")
+        if file.content_type == "application/pdf" and mime_type != "application/pdf":
+            raise HTTPException(status_code=422, detail=f"File extension indicates PDF, but actual content is {mime_type}.")
+        elif file.content_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" and mime_type not in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/zip"]:
+            # DOCX files are essentially zip archives, so magic might identify them as application/zip depending on the version
+            raise HTTPException(status_code=422, detail=f"File extension indicates DOCX, but actual content is {mime_type}.")
 
         # Duplicate Detection via SHA-256
         sha256_hash = hashlib.sha256()

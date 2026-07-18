@@ -1,17 +1,22 @@
 import json
+import time
 import logging
 from google import genai
+from google.genai import errors as genai_errors
 from fastapi import HTTPException
-from app.core.config import settings
+from app.core.config import settings, get_gemini_key
 from app.modules.assets.repository import AssetRepository
 from app.modules.assets.aggregator import AssetAggregator
 
 logger = logging.getLogger(__name__)
 
+GEMINI_MODEL = "gemini-2.0-flash"
+MAX_RETRIES = 3
+
 class AssetService:
     def __init__(self):
         self.repo = AssetRepository()
-        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+        self.client = genai.Client(api_key=get_gemini_key())
         
     def get_all_assets(self) -> list:
         return self.repo.get_all_assets()
@@ -81,12 +86,32 @@ DATA:
 {json.dumps(payload, indent=2)}
         """
         
-        try:
-            response = self.client.models.generate_content(
-                model='gemini-3.5-flash',
-                contents=prompt
-            )
-            return response.text.strip()
-        except Exception as e:
-            logger.error(f"Failed to generate asset summary: {e}")
-            raise HTTPException(status_code=500, detail="AI generation failed.")
+        last_error = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = self.client.models.generate_content(
+                    model=GEMINI_MODEL,
+                    contents=prompt
+                )
+                return response.text.strip()
+            except (genai_errors.ClientError, genai_errors.ServerError) as e:
+                err_str = str(e)
+                if "429" in err_str or "503" in err_str or "RESOURCE_EXHAUSTED" in err_str or "UNAVAILABLE" in err_str:
+                    logger.warning(f"Gemini transient error attempt {attempt + 1}: {err_str[:80]}")
+                    self.client = genai.Client(api_key=get_gemini_key())
+                    time.sleep(2 * (attempt + 1))
+                    last_error = e
+                else:
+                    logger.error(f"Failed to generate asset summary: {e}")
+                    break
+            except Exception as e:
+                logger.error(f"Failed to generate asset summary: {e}")
+                break
+
+        # Graceful fallback — never return 500 for a summary
+        health = profile.get('health', {})
+        return (
+            f"Asset {asset_id} — Health Score: {health.get('score', 'N/A')}. "
+            f"Status: {health.get('status', 'Unknown')}. "
+            f"AI summary temporarily unavailable. Please try again shortly."
+        )
